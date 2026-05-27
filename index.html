@@ -313,14 +313,29 @@
 
     <script>
         // --- 1. 상태 및 상수 정의 ---
-        const DB_KEY = 'pm_master_v3_core';
-        const META_KEY = 'pm_master_v3_meta';
-        const LOGO_KEY = 'pm_master_v3_logo';
+        const DB_KEY = 'pm_master_v4_core';
+        const META_KEY = 'pm_master_v4_meta';
+        const LOGO_KEY = 'pm_master_v4_logo';
 
         const initialTasks = [
-            { id: 1, equip: 'F04', category: '공압호스', content: '메인공압호스 연결상태 확인', tool: '육안 및 게이지', action: '호스 균열 시 교체', period: '분기', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
-            { id: 2, equip: 'F04', category: '센서류', content: '감지센서 작동여부 확인', tool: 'LED육안', action: '교체', period: '6개월', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
-            { id: 3, equip: 'S30', category: '3Axis 로봇', content: '직렬상태 및 오염 확인', tool: '육안', action: '수정', period: '1년', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' }
+            { id: 1101, equip: 'F04', category: '공압호스', content: '메인공압호스 연결상태 확인', tool: '육안 및 게이지', action: '호스 균열상태 확인 및 이상 시 교체', period: '분기', locPhoto: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=800', refPhoto: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=800' },
+            { id: 1102, equip: 'F04', category: '에어필터', content: '오염여부 확인', tool: '육안', action: '교체', period: '분기', locPhoto: 'https://images.unsplash.com/photo-159742324403d-efea03ded42a?q=80&w=800', refPhoto: 'https://images.unsplash.com/photo-159742324403d-efea03ded42a?q=80&w=800' },
+            { id: 1103, equip: 'F04', category: '카메라 렌즈', content: '오염상태 확인 및 이물질 제거', tool: '마른걸레', action: '이물질 제거', period: '분기', locPhoto: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800', refPhoto: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=800' },
+            { id: 1104, equip: 'F04', category: '오염상태', content: '배기호스 오염상태 확인', tool: '육안 및 시스템', action: '호스내부청소', period: '6개월', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1105, equip: 'F04', category: '센서류', content: '감지센서 작동여부 확인', tool: 'LED육안', action: '교체', period: '6개월', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1106, equip: 'F04', category: '솔벨브', content: '오염여부 확인', tool: '육안', action: '교체', period: '1년', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1107, equip: 'F04', category: '실린더', content: '직렬상태 확인 및 윤활유 도포', tool: '육안 및 작동검사', action: '수정 및 교체', period: '1년', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1108, equip: 'F04', category: '소모품', content: '배터리 교체', tool: '교체작업', action: '교체', period: '1년', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1109, equip: 'F04', category: '3Axis 로봇', content: '직렬상태 확인', tool: '육안 및 작동검사', action: '수정 및 교체', period: '1년', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1110, equip: 'S30', category: '공압호스', content: '연결상태 확인', tool: '육안 및 게이지', action: '교체', period: '분기', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1111, equip: 'S30', category: '에어필터', content: '오염 확인', tool: '육안', action: '교체', period: '분기', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1112, equip: 'S30', category: '카메라 렌즈', content: '오염 및 이물질 제거', tool: '마른걸레', action: '이물질 제거', period: '분기', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1113, equip: 'S30', category: '오염상태', content: '배기호스 확인', tool: '육안', action: '청소', period: '6개월', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1114, equip: 'S30', category: '센서류', content: '작동여부 확인', tool: 'LED육안', action: '교체', period: '6개월', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1115, equip: 'S30', category: '솔벨브', content: '오염 확인', tool: '육안', action: '교체', period: '1년', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1116, equip: 'S30', category: '실린더', content: '직렬 확인 및 윤활', tool: '작동검사', action: '수정', period: '1년', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1117, equip: 'S30', category: '소모품', content: '배터리 교체', tool: '교체작업', action: '교체', period: '1년', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 1118, equip: 'S30', category: '3Axis 로봇', content: '오염 및 직렬 확인', tool: '육안', action: '수정', period: '1년', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' }
         ];
 
         let tasks = [];
@@ -680,22 +695,37 @@
         async function downloadPDF() {
             const btn = document.getElementById('pdf-btn');
             const originalText = btn.innerText;
-            btn.innerText = '생성 중...'; btn.disabled = true;
+            btn.innerText = '⏳ PDF 굽는 중...'; 
+            btn.disabled = true;
 
             const element = document.getElementById('printable-report');
             const title = document.getElementById('report-title').value || 'PM_Report';
             
+            // 💡 폰에서 뻗는 문제 해결: 기기 화면 크기에 따라 화질(Scale) 동적 조절!
+            const isMobile = window.innerWidth <= 800;
             const opt = {
-                margin: 10,
+                margin: 5,
                 filename: `${title}_${new Date().toISOString().split('T')[0]}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
+                image: { type: 'jpeg', quality: 0.8 }, // 폰 메모리 뻗음 방지 (압축률 조정)
+                html2canvas: { 
+                    scale: isMobile ? 1 : 2, // 폰은 무조건 1배율 (이게 핵심! 2배율 이상이면 모바일 브라우저 기절함)
+                    useCORS: true,
+                    scrollY: 0
+                },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            try { await html2pdf().from(element).set(opt).save(); } 
-            catch (err) { alert('PDF 생성 실패. 브라우저 인쇄 기능을 이용해주세요.'); } 
-            finally { btn.innerText = originalText; btn.disabled = false; }
+            try { 
+                await html2pdf().from(element).set(opt).save(); 
+            } catch (err) { 
+                console.error('PDF Error:', err);
+                // 💡 만약 폰 기종 자체의 보안/메모리 한계로 막히면 무적의 플랜 B 발동!
+                alert('앗! 폰 메모리 제한 때문에 굽기가 취소됐어! 💦\n대신 [인쇄] 창을 띄워줄 테니 화면 상단에서 "PDF로 저장"을 선택해줘! 😆');
+                window.print();
+            } finally { 
+                btn.innerText = originalText; 
+                btn.disabled = false; 
+            }
         }
 
         function backToApp() { document.getElementById('report-view').classList.add('hidden'); document.getElementById('inspection-view').classList.remove('hidden'); }
