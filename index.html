@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PM Master Pro - 안정성 끝판왕</title>
+    
+    <!-- PWA (앱처럼 보이게 하는 세팅) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1e293b">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* [보고서 레이아웃 규격 고정] */
+        .report-container { 
+            width: 794px; /* A4 너비 기준 */
+            min-height: 1123px;
+            padding: 30px;
+            background: white;
+            margin: 0 auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        #report-view table { border: 2px solid #000 !important; border-collapse: collapse !important; width: 100%; table-layout: fixed !important; }
+        #report-view th, #report-view td { border: 1px solid #000 !important; padding: 6px; vertical-align: middle; word-break: break-all; }
+
+        .col-no { width: 30px; text-align: center;}
+        .col-info { width: 150px; } 
+        .col-guide { width: 180px; text-align: center;}
+        .col-status { width: 50px; text-align: center;}
+        .col-photo { width: 180px; text-align: center;}
+        .col-note { width: auto; }
+
+        .fixed-img-box { width: 160px !important; height: 120px !important; object-fit: cover !important; display: block; margin: 0 auto; border: 1px solid #ddd; }
+
+        /* [인쇄 전용 설정] */
+        @media print {
+            @page { size: A4 portrait; margin: 0; }
+            body { background: white; }
+            .no-print { display: none !important; }
+            #report-view { display: block !important; padding: 0 !important; background: white;}
+            .report-container { box-shadow: none !important; margin: 0 !important; width: 100% !important; padding: 10mm !important; }
+        }
+
+        @media (max-width: 850px) {
+            #report-wrapper { overflow-x: auto; padding: 10px; }
+        }
+
+        .card-appear { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white p-4 sticky top-0 z-50 shadow-lg no-print">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <img id="app-logo" src="https://via.placeholder.com/100x40?text=LOGO" alt="Logo" class="h-8 w-auto rounded bg-white p-1">
+                <h1 class="text-base font-black tracking-tight text-blue-400">PM MASTER</h1>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="toggleModal('settings-modal')" class="w-8 h-8 flex items-center justify-center bg-slate-800 rounded-lg text-slate-300 active:scale-95"><i class="fas fa-cog"></i></button>
+                <button onclick="toggleSetupMode()" id="setup-btn" class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">항목 관리</button>
+                <button onclick="openAddModal()" class="bg-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-lg active:scale-95"><i class="fas fa-plus"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <!-- [1. Setup Mode View] -->
+    <div id="setup-view" class="hidden no-print p-4 container mx-auto">
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 mb-6 card-appear">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <h3 class="text-lg font-black">점검 항목 셋업</h3>
+                <button onclick="toggleModal('bulk-modal')" class="text-xs bg-green-50 text-green-600 px-3 py-2 rounded-lg font-bold border border-green-200 active:scale-95">
+                    <i class="fas fa-file-excel"></i> 대량 추가
+                </button>
+            </div>
+
+            <!-- 스마트 일괄 선택 도구함 -->
+            <div class="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100">
+                <p class="text-xs font-bold text-slate-500 mb-2">일괄 활성화 관리</p>
+                <div class="flex gap-2 mb-3">
+                    <button onclick="bulkToggle(true)" class="flex-1 bg-slate-800 text-white py-2 rounded-xl text-xs font-bold active:scale-95">전체 선택</button>
+                    <button onclick="bulkToggle(false)" class="flex-1 bg-white border border-slate-300 text-slate-500 py-2 rounded-xl text-xs font-bold active:scale-95">전체 해제</button>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="selectByPeriod('분기', true)" class="bg-blue-100 text-blue-700 py-2 rounded-xl text-xs font-bold">분기 ON</button>
+                    <button onclick="selectByPeriod('6개월', true)" class="bg-blue-100 text-blue-700 py-2 rounded-xl text-xs font-bold">반기 ON</button>
+                    <button onclick="selectByPeriod('1년', true)" class="bg-blue-100 text-blue-700 py-2 rounded-xl text-xs font-bold">1년 ON</button>
+                </div>
+            </div>
+            
+            <div id="setup-list" class="space-y-3 mb-6"></div>
+            <button onclick="toggleSetupMode()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-lg active:scale-95 shadow-lg">점검 화면으로 이동 🚀</button>
+        </div>
+    </div>
+
+    <!-- [2. Inspection Mode View] -->
+    <div id="inspection-view" class="no-print">
+        <section class="p-4 container mx-auto space-y-4">
+            <!-- 메타 정보 입력 -->
+            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 card-appear">
+                <input type="text" id="report-title" value="설비 예방보전 점검 보고서" class="w-full text-lg font-black mb-3 pb-2 border-b outline-none text-center" onchange="saveMetaData()">
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <input type="text" id="inspector-name" placeholder="점검자 성함" class="bg-slate-50 rounded-xl p-3 text-sm font-bold border border-slate-100 outline-none" onchange="saveMetaData()">
+                    <input type="date" id="inspection-date" class="bg-slate-50 rounded-xl p-3 text-sm font-bold border border-slate-100 outline-none" onchange="saveMetaData()">
+                </div>
+                <input type="text" id="inspection-location" placeholder="점검 위치 (라인/설비명)" class="w-full bg-slate-50 rounded-xl p-3 text-sm font-bold border border-slate-100 outline-none" onchange="saveMetaData()">
+            </div>
+            
+            <!-- 설비 탭 -->
+            <div class="flex gap-2 overflow-x-auto no-scrollbar py-2" id="equipment-tabs">
+                <button class="px-4 py-2 tab-active whitespace-nowrap text-sm font-bold rounded-full bg-white shadow-sm" onclick="filterTasks('all')">전체</button>
+            </div>
+        </section>
+
+        <!-- 점검 리스트 -->
+        <main class="container mx-auto px-4 space-y-4 pb-6" id="task-list"></main>
+
+        <section class="container mx-auto px-4 pb-10 space-y-4 text-center">
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                <textarea id="overall-opinion" rows="3" placeholder="종합 의견을 입력하세요 (선택)" class="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold outline-none border border-slate-100 mb-4" onchange="saveMetaData()"></textarea>
+                <button onclick="generateReport()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition">
+                    <i class="fas fa-file-invoice"></i> 보고서 생성하기
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <!-- [3. Report View Area] -->
+    <div id="report-view" class="hidden bg-slate-200 min-h-screen py-10">
+        <div id="report-wrapper" class="no-print">
+            <div class="report-container" id="printable-report">
+                
+                <!-- Report Header -->
+                <div class="flex justify-between items-end border-b-4 border-black pb-4 mb-6">
+                    <div class="flex items-center gap-4">
+                        <img id="report-logo" src="" alt="Logo" class="h-12 w-auto">
+                        <div>
+                            <h2 id="final-report-title" class="text-2xl font-black uppercase">REPORT TITLE</h2>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase mt-1">Maintenance Inspection Record</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs font-bold bg-slate-100 px-2 py-1 rounded" id="report-date-display"></p>
+                    </div>
+                </div>
+                
+                <!-- Info Section -->
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="border-l-4 border-blue-500 pl-3">
+                        <p class="text-[9px] text-slate-500 font-bold uppercase">Inspector</p>
+                        <p class="font-black text-sm" id="report-inspector-name">-</p>
+                    </div>
+                    <div class="border-l-4 border-slate-800 pl-3">
+                        <p class="text-[9px] text-slate-500 font-bold uppercase">Location</p>
+                        <p class="font-black text-sm" id="report-inspection-location">-</p>
+                    </div>
+                    <div class="border-l-4 border-orange-500 pl-3">
+                        <p class="text-[9px] text-slate-500 font-bold uppercase">Date</p>
+                        <p class="font-black text-sm" id="report-manual-date">-</p>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <table class="w-full mb-8">
+                    <thead>
+                        <tr class="bg-slate-100 text-center text-[10px]">
+                            <th class="col-no">No</th>
+                            <th class="col-info">점검 항목 및 방법</th>
+                            <th class="col-guide">표준 가이드</th>
+                            <th class="col-status">판정</th>
+                            <th class="col-photo">현장 사진</th>
+                            <th class="col-note">특이사항</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-table-body"></tbody>
+                </table>
+
+                <!-- Summary -->
+                <div class="border-2 border-slate-200 rounded-xl p-6 flex gap-6">
+                    <div class="w-1/3 border-r-2 border-slate-200 pr-6 text-center">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase mb-2">Inspection Result</p>
+                        <p class="text-2xl font-black mb-2">Total <span id="stats-total" class="text-blue-600">0</span></p>
+                        <div class="flex justify-center gap-4 text-sm font-bold">
+                            <span class="text-green-600">OK: <span id="stats-ok">0</span></span>
+                            <span class="text-red-600">NG: <span id="stats-ng">0</span></span>
+                        </div>
+                    </div>
+                    <div class="w-2/3">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase mb-2">Overall Opinion</p>
+                        <p id="report-overall-opinion" class="text-sm font-bold whitespace-pre-line"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="max-w-[794px] mx-auto flex gap-3 pt-6 px-4 pb-12 no-print">
+            <button onclick="backToApp()" class="flex-1 bg-white text-slate-800 py-4 rounded-2xl font-black shadow-md border active:scale-95">돌아가기</button>
+            <button onclick="window.print()" class="flex-1 bg-slate-800 text-white py-4 rounded-2xl font-black shadow-md active:scale-95">인쇄</button>
+            <button onclick="downloadPDF()" id="pdf-btn" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black shadow-md active:scale-95">PDF 저장</button>
+        </div>
+    </div>
+
+    <!-- [Modals] -->
+    
+    <!-- 1. Add/Edit Task Modal -->
+    <div id="add-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-black text-lg" id="add-modal-title">항목 등록</h3>
+                <button onclick="toggleModal('add-modal')" class="text-2xl text-slate-400">&times;</button>
+            </div>
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" id="new-equip" placeholder="설비명" class="bg-slate-50 rounded-xl p-3 text-sm font-bold border border-slate-100 outline-none">
+                    <input type="text" id="new-cat" placeholder="분류" class="bg-slate-50 rounded-xl p-3 text-sm font-bold border border-slate-100 outline-none">
+                </div>
+                <input type="text" id="new-content" placeholder="점검 내용" class="w-full bg-slate-50 rounded-xl p-3 text-sm font-bold border border-slate-100 outline-none">
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div onclick="document.getElementById('new-loc-photo').click()" id="loc-preview-box" class="h-24 bg-slate-50 rounded-xl border border-dashed flex flex-col items-center justify-center cursor-pointer text-slate-400 overflow-hidden">
+                        <i class="fas fa-camera mb-1"></i><span class="text-xs">부위 사진</span>
+                    </div>
+                    <input type="file" id="new-loc-photo" class="hidden" accept="image/*" onchange="handleImageCompress(this, 'loc-preview-box')">
+                    
+                    <div onclick="document.getElementById('new-std-photo').click()" id="std-preview-box" class="h-24 bg-slate-50 rounded-xl border border-dashed flex flex-col items-center justify-center cursor-pointer text-slate-400 overflow-hidden">
+                        <i class="fas fa-check-circle mb-1"></i><span class="text-xs">표준 사진</span>
+                    </div>
+                    <input type="file" id="new-std-photo" class="hidden" accept="image/*" onchange="handleImageCompress(this, 'std-preview-box')">
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <input type="text" id="new-tool" placeholder="점검방법" class="bg-slate-50 rounded-lg p-2 text-xs font-bold border border-slate-100 outline-none">
+                    <input type="text" id="new-action" placeholder="이상조치" class="bg-slate-50 rounded-lg p-2 text-xs font-bold border border-slate-100 outline-none">
+                    <input type="text" id="new-period" placeholder="보전주기" class="bg-slate-50 rounded-lg p-2 text-xs font-bold border border-slate-100 outline-none">
+                </div>
+                <button onclick="saveTask()" class="w-full py-4 bg-blue-600 text-white rounded-xl font-black mt-2 active:scale-95">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-6 text-center">
+            <h3 class="font-black text-lg mb-6 border-b pb-4">환경 설정</h3>
+            <div class="mb-6">
+                <p class="text-xs font-bold text-slate-400 mb-2">로고 이미지</p>
+                <img id="settings-logo-preview" src="" class="h-12 mx-auto mb-3" onerror="this.src='https://via.placeholder.com/100x40?text=LOGO'">
+                <button onclick="document.getElementById('logo-upload').click()" class="bg-slate-100 px-4 py-2 rounded-lg text-xs font-bold">변경</button>
+                <input type="file" id="logo-upload" class="hidden" accept="image/*" onchange="handleLogoUpload(this)">
+            </div>
+            <div class="grid grid-cols-2 gap-2 mb-6">
+                <button onclick="exportData()" class="bg-slate-800 text-white py-3 rounded-xl text-xs font-bold">백업(다운로드)</button>
+                <button onclick="document.getElementById('import-upload').click()" class="bg-blue-600 text-white py-3 rounded-xl text-xs font-bold">복구(업로드)</button>
+                <input type="file" id="import-upload" class="hidden" onchange="importData(this)">
+            </div>
+            <button onclick="clearAllData()" class="text-red-400 text-xs font-bold underline">데이터 전체 초기화</button>
+            <button onclick="toggleModal('settings-modal')" class="w-full mt-6 py-3 bg-slate-100 rounded-xl font-bold">닫기</button>
+        </div>
+    </div>
+
+    <!-- 3. Guide View Modal -->
+    <div id="photo-modal" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl">
+            <div class="p-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 class="font-black text-sm" id="modal-title">가이드</h3>
+                <button onclick="toggleModal('photo-modal')" class="text-2xl text-slate-400">&times;</button>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <p class="text-[10px] font-bold text-blue-500 mb-1">Step 01. 부위</p>
+                        <img id="modal-loc-img" src="" class="w-full h-32 object-cover rounded-xl border">
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-green-500 mb-1">Step 02. 표준</p>
+                        <img id="modal-std-img" src="" class="w-full h-32 object-cover rounded-xl border">
+                    </div>
+                </div>
+                <div id="modal-desc" class="bg-slate-100 p-4 rounded-xl text-xs font-bold text-slate-700 whitespace-pre-line leading-relaxed"></div>
+                <button onclick="toggleModal('photo-modal')" class="w-full bg-blue-600 text-white py-3 mt-4 rounded-xl font-black">확인 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Bulk Modal -->
+    <div id="bulk-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-6 text-center">
+            <h3 class="font-black text-lg mb-4">엑셀 대량 추가</h3>
+            <p class="text-[10px] text-left bg-green-50 text-green-700 p-3 rounded-lg mb-4">
+                순서: 설비 / 분류 / 점검내용 / 방법 / 조치 / 주기 / 부위사진URL / 표준사진URL (탭으로 구분)
+            </p>
+            <textarea id="bulk-paste-area" rows="8" class="w-full bg-slate-50 rounded-xl p-3 text-xs font-mono border border-slate-200 outline-none mb-4" placeholder="복사한 내용을 붙여넣으세요..."></textarea>
+            <div class="flex gap-2">
+                <button onclick="toggleModal('bulk-modal')" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold">취소</button>
+                <button onclick="processBulkAdd()" class="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold">등록하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 상태 및 상수 정의 ---
+        const DB_KEY = 'pm_master_v3_core';
+        const META_KEY = 'pm_master_v3_meta';
+        const LOGO_KEY = 'pm_master_v3_logo';
+
+        const initialTasks = [
+            { id: 1, equip: 'F04', category: '공압호스', content: '메인공압호스 연결상태 확인', tool: '육안 및 게이지', action: '호스 균열 시 교체', period: '분기', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 2, equip: 'F04', category: '센서류', content: '감지센서 작동여부 확인', tool: 'LED육안', action: '교체', period: '6개월', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' },
+            { id: 3, equip: 'S30', category: '3Axis 로봇', content: '직렬상태 및 오염 확인', tool: '육안', action: '수정', period: '1년', locPhoto: 'https://via.placeholder.com/800x600?text=Loc', refPhoto: 'https://via.placeholder.com/800x600?text=Std' }
+        ];
+
+        let tasks = [];
+        let customLogo = null;
+        let setupMode = false;
+        let editingTaskId = null;
+        let tempLocPhoto = null;
+        let tempStdPhoto = null;
+
+        // --- 2. 이미지 압축 핵심 로직 (5MB 뻗음 방지) ---
+        // 이미지를 캔버스에 그려서 용량을 1/10 수준으로 강제 압축 후 저장
+        function compressImage(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let ctx = canvas.getContext('2d');
+                    let width = img.width;
+                    let height = img.height;
+                    const MAX_SIZE = 800; // 최대 해상도 800px
+
+                    if (width > height) {
+                        if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+                    } else {
+                        if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // 화질 0.6의 JPEG로 압축 추출 (용량 극적 감소)
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                    callback(dataUrl);
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // --- 3. 데이터 저장 및 불러오기 ---
+        function saveData() {
+            try {
+                localStorage.setItem(DB_KEY, JSON.stringify(tasks));
+            } catch (e) {
+                if (e.name === 'QuotaExceededError') {
+                    alert('저장 공간이 부족합니다! 오래된 사진을 지우거나 백업 후 초기화해주세요.');
+                }
+            }
+        }
+
+        function saveMetaData() {
+            const meta = {
+                title: document.getElementById('report-title').value,
+                inspector: document.getElementById('inspector-name').value,
+                date: document.getElementById('inspection-date').value,
+                location: document.getElementById('inspection-location').value,
+                opinion: document.getElementById('overall-opinion').value
+            };
+            localStorage.setItem(META_KEY, JSON.stringify(meta));
+        }
+
+        function loadData() {
+            // Task 데이터 로드
+            const storedTasks = localStorage.getItem(DB_KEY);
+            if (storedTasks) {
+                tasks = JSON.parse(storedTasks);
+            } else {
+                tasks = initialTasks.map(t => ({...t, isActive: true, status: 'pending', userPhoto: null, note: ''}));
+            }
+
+            // 메타 데이터 로드
+            const storedMeta = localStorage.getItem(META_KEY);
+            if (storedMeta) {
+                const meta = JSON.parse(storedMeta);
+                document.getElementById('report-title').value = meta.title || '설비 예방보전 점검 보고서';
+                document.getElementById('inspector-name').value = meta.inspector || '';
+                document.getElementById('inspection-date').value = meta.date || new Date().toISOString().split('T')[0];
+                document.getElementById('inspection-location').value = meta.location || '';
+                document.getElementById('overall-opinion').value = meta.opinion || '';
+            } else {
+                document.getElementById('inspection-date').value = new Date().toISOString().split('T')[0];
+            }
+
+            // 로고 로드
+            customLogo = localStorage.getItem(LOGO_KEY);
+            applyLogo();
+        }
+
+        // --- 4. 렌더링 함수들 ---
+        function getSortedTasks(list) {
+            const periodOrder = {"분기": 1, "6개월": 2, "1년": 3};
+            return list.sort((a, b) => {
+                const equipComp = (a.equip || "").localeCompare(b.equip || "");
+                if (equipComp !== 0) return equipComp;
+                return (periodOrder[a.period] || 99) - (periodOrder[b.period] || 99);
+            });
+        }
+
+        function renderSetupList() {
+            const list = document.getElementById('setup-list'); 
+            list.innerHTML = '';
+            const sorted = getSortedTasks([...tasks]);
+            
+            sorted.forEach(task => {
+                const item = document.createElement('div');
+                item.className = `flex justify-between items-center p-4 rounded-xl border transition ${task.isActive ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white'}`;
+                item.innerHTML = `
+                    <div class="flex items-center gap-3 flex-1 cursor-pointer" onclick="toggleTaskActive(${task.id})">
+                        <input type="checkbox" class="w-5 h-5" ${task.isActive ? 'checked' : ''}>
+                        <div>
+                            <p class="font-bold text-sm text-slate-800">${task.content}</p>
+                            <p class="text-[10px] text-slate-500 mt-1">${task.equip} | ${task.period}</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="editTask(${task.id})" class="text-blue-500 p-2"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteTask(${task.id})" class="text-red-400 p-2"><i class="fas fa-trash-alt"></i></button>
+                    </div>`;
+                list.appendChild(item);
+            });
+        }
+
+        function renderTasks(filteredTasks = tasks.filter(t => t.isActive)) {
+            const listContainer = document.getElementById('task-list'); 
+            listContainer.innerHTML = '';
+            
+            // 탭 생성
+            const tabs = document.getElementById('equipment-tabs');
+            tabs.innerHTML = `<button class="px-4 py-2 tab-active whitespace-nowrap text-sm font-bold rounded-full bg-white shadow-sm" onclick="filterTasks('all')">전체</button>`;
+            const activeEquips = [...new Set(tasks.filter(t=>t.isActive).map(t => t.equip))].sort();
+            activeEquips.forEach(e => { 
+                tabs.innerHTML += `<button class="px-4 py-2 whitespace-nowrap text-sm font-bold text-slate-500" onclick="filterTasks('${e}')">${e}</button>`; 
+            });
+
+            const sorted = getSortedTasks([...filteredTasks]);
+
+            if(sorted.length === 0) { 
+                listContainer.innerHTML = `<div class="p-10 text-center text-slate-400 font-bold">활성화된 항목이 없습니다.</div>`; 
+                return; 
+            }
+
+            sorted.forEach(task => {
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-3xl p-5 shadow-sm border-2 transition ${task.status === 'pass' ? 'border-green-400 bg-green-50/30' : task.status === 'fail' ? 'border-red-400 bg-red-50/30' : 'border-transparent'}`;
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded font-bold">${task.equip} · ${task.category} [${task.period}]</span>
+                        <button onclick="openGuideModal(${task.id})" class="text-blue-600 text-[10px] font-bold bg-blue-50 px-2 py-1 rounded">가이드 보기</button>
+                    </div>
+                    <h4 class="text-base font-black mb-3">${task.content}</h4>
+                    
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <!-- 사진 촬영 영역 (압축 적용) -->
+                        <div onclick="document.getElementById('photo-${task.id}').click()" class="h-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center cursor-pointer overflow-hidden relative">
+                            ${task.userPhoto ? `<img src="${task.userPhoto}" class="w-full h-full object-cover">` : '<div class="text-center text-slate-300"><i class="fas fa-camera text-2xl mb-1"></i><p class="text-[10px] font-bold">사진 촬영</p></div>'}
+                            <input type="file" id="photo-${task.id}" class="hidden" accept="image/*" capture="environment" onchange="handleTaskPhoto(this, ${task.id})">
+                        </div>
+                        
+                        <!-- 판정 영역 -->
+                        <div class="flex flex-col gap-2">
+                            <button onclick="setStatus(${task.id}, 'pass')" class="flex-1 rounded-xl text-sm font-bold transition ${task.status === 'pass' ? 'bg-green-500 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-400'}">OK (양호)</button>
+                            <button onclick="setStatus(${task.id}, 'fail')" class="flex-1 rounded-xl text-sm font-bold transition ${task.status === 'fail' ? 'bg-red-500 text-white shadow-md' : 'bg-white border border-slate-200 text-slate-400'}">NG (불량)</button>
+                        </div>
+                    </div>
+                    <input type="text" value="${task.note || ''}" onchange="updateNote(${task.id}, this.value)" placeholder="특이사항 메모..." class="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-bold outline-none">
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
+        // --- 5. 인터랙션 로직 ---
+        function filterTasks(equip) {
+            document.querySelectorAll('#equipment-tabs button').forEach(b => {
+                b.classList.remove('tab-active', 'text-blue-500');
+                if(b.innerText === equip || (equip === 'all' && b.innerText === '전체')) b.classList.add('tab-active', 'text-blue-500');
+            });
+            const active = tasks.filter(t => t.isActive);
+            renderTasks(equip === 'all' ? active : active.filter(t => t.equip === equip));
+        }
+
+        function setStatus(id, s) { tasks.find(t => t.id === id).status = s; saveData(); renderTasks(); }
+        function updateNote(id, val) { tasks.find(t => t.id === id).note = val; saveData(); }
+        
+        // 현장 사진 찍을 때 압축해서 저장
+        function handleTaskPhoto(input, id) {
+            if (input.files && input.files[0]) {
+                compressImage(input.files[0], (compressedDataUrl) => {
+                    tasks.find(t => t.id === id).userPhoto = compressedDataUrl;
+                    saveData();
+                    renderTasks();
+                });
+            }
+        }
+
+        // --- 6. 셋업 관리 로직 ---
+        function toggleSetupMode() { 
+            setupMode = !setupMode; 
+            if(setupMode) { 
+                document.getElementById('setup-view').classList.remove('hidden'); 
+                document.getElementById('inspection-view').classList.add('hidden'); 
+                renderSetupList(); 
+            } else { 
+                document.getElementById('setup-view').classList.add('hidden'); 
+                document.getElementById('inspection-view').classList.remove('hidden'); 
+                renderTasks(); 
+            } 
+        }
+
+        function toggleTaskActive(id) { const t = tasks.find(x => x.id === id); t.isActive = !t.isActive; saveData(); renderSetupList(); }
+        function bulkToggle(bool) { tasks.forEach(t => t.isActive = bool); saveData(); renderSetupList(); }
+        function selectByPeriod(p, bool) { tasks.forEach(t => { if(t.period === p) t.isActive = bool; }); saveData(); renderSetupList(); }
+        function deleteTask(id) { if(confirm("삭제할까요?")) { tasks = tasks.filter(t => t.id !== id); saveData(); renderSetupList(); } }
+
+        function editTask(id) { 
+            editingTaskId = id; 
+            const t = tasks.find(x => x.id === id); 
+            document.getElementById('add-modal-title').innerText = "항목 수정"; 
+            document.getElementById('new-equip').value = t.equip; 
+            document.getElementById('new-cat').value = t.category; 
+            document.getElementById('new-content').value = t.content; 
+            document.getElementById('new-tool').value = t.tool; 
+            document.getElementById('new-action').value = t.action; 
+            document.getElementById('new-period').value = t.period; 
+            
+            tempLocPhoto = t.locPhoto; tempStdPhoto = t.refPhoto; 
+            document.getElementById('loc-preview-box').innerHTML = `<img src="${t.locPhoto}" class="h-full object-cover">`; 
+            document.getElementById('std-preview-box').innerHTML = `<img src="${t.refPhoto}" class="h-full object-cover">`; 
+            
+            toggleModal('add-modal'); 
+        }
+
+        function openAddModal() { 
+            editingTaskId = null; 
+            document.getElementById('add-modal-title').innerText = "새 항목 등록"; 
+            ['new-equip','new-cat','new-content','new-tool','new-action','new-period'].forEach(id => document.getElementById(id).value = ''); 
+            
+            tempLocPhoto = null; tempStdPhoto = null;
+            document.getElementById('loc-preview-box').innerHTML = '<i class="fas fa-camera mb-1"></i><span class="text-xs">부위 사진</span>'; 
+            document.getElementById('std-preview-box').innerHTML = '<i class="fas fa-check-circle mb-1"></i><span class="text-xs">표준 사진</span>'; 
+            
+            toggleModal('add-modal'); 
+        }
+
+        function saveTask() {
+            const equip = document.getElementById('new-equip').value;
+            const content = document.getElementById('new-content').value;
+            if(!equip || !content) { alert('설비명과 내용을 입력하세요.'); return; }
+            
+            const data = { 
+                equip, 
+                category: document.getElementById('new-cat').value || '기타', 
+                content, 
+                tool: document.getElementById('new-tool').value || '육안', 
+                action: document.getElementById('new-action').value || '조치', 
+                period: document.getElementById('new-period').value || '수시', 
+                locPhoto: tempLocPhoto || 'https://via.placeholder.com/800x600?text=No+Image', 
+                refPhoto: tempStdPhoto || 'https://via.placeholder.com/800x600?text=No+Image', 
+                isActive: true 
+            };
+
+            if(editingTaskId) { 
+                const idx = tasks.findIndex(t => t.id === editingTaskId); 
+                tasks[idx] = {...tasks[idx], ...data}; 
+            } else { 
+                tasks.push({ id: Date.now(), ...data, status: 'pending', userPhoto: null, note: '' }); 
+            }
+            saveData(); 
+            renderSetupList(); 
+            renderTasks(); 
+            toggleModal('add-modal');
+        }
+
+        function handleImageCompress(input, boxId) {
+            if (input.files && input.files[0]) {
+                compressImage(input.files[0], (compressedUrl) => {
+                    document.getElementById(boxId).innerHTML = `<img src="${compressedUrl}" class="h-full object-cover">`;
+                    if(boxId === 'loc-preview-box') tempLocPhoto = compressedUrl;
+                    else tempStdPhoto = compressedUrl;
+                });
+            }
+        }
+
+        function processBulkAdd() {
+            const data = document.getElementById('bulk-paste-area').value;
+            if(!data.trim()) return;
+            const rows = data.split('\n');
+            let count = 0;
+            rows.forEach(r => {
+                const c = r.split('\t');
+                if(c.length >= 3) {
+                    tasks.push({ 
+                        id: Date.now() + Math.random(), 
+                        equip: c[0]?.trim() || '-', category: c[1]?.trim() || '-', content: c[2]?.trim() || '-', 
+                        tool: c[3]?.trim() || '-', action: c[4]?.trim() || '-', period: c[5]?.trim() || '-', 
+                        locPhoto: c[6]?.trim() || 'https://via.placeholder.com/800x600', refPhoto: c[7]?.trim() || 'https://via.placeholder.com/800x600', 
+                        isActive: true, status: 'pending', userPhoto: null, note: '' 
+                    });
+                    count++;
+                }
+            });
+            saveData(); renderSetupList(); toggleModal('bulk-modal'); document.getElementById('bulk-paste-area').value=''; alert(`${count}개 등록 완료!`);
+        }
+
+        // --- 7. 보고서 및 유틸 로직 ---
+        function generateReport() {
+            const active = tasks.filter(t => t.isActive);
+            const sorted = getSortedTasks([...active]);
+            const tbody = document.getElementById('report-table-body');
+            tbody.innerHTML = '';
+            let ok = 0, ng = 0;
+
+            sorted.forEach((t, i) => {
+                if(t.status === 'pass') ok++;
+                if(t.status === 'fail') ng++;
+                
+                const tr = `<tr>
+                    <td class="col-no">${i + 1}</td>
+                    <td class="col-info">
+                        <p class="font-bold text-[10px] text-blue-600">[${t.equip}] ${t.category}</p>
+                        <p class="font-black text-sm my-1">${t.content}</p>
+                        <p class="text-[9px] text-slate-500">주기: ${t.period} | 방법: ${t.tool}</p>
+                        <p class="text-[9px] text-slate-500">조치: ${t.action}</p>
+                    </td>
+                    <td class="col-guide">
+                        <img src="${t.refPhoto}" class="fixed-img-box">
+                    </td>
+                    <td class="col-status">
+                        <span class="font-black text-xs ${t.status === 'pass' ? 'text-green-600' : t.status === 'fail' ? 'text-red-600' : 'text-slate-400'}">${t.status === 'pass' ? 'OK' : t.status === 'fail' ? 'NG' : '-'}</span>
+                    </td>
+                    <td class="col-photo">
+                        ${t.userPhoto ? `<img src="${t.userPhoto}" class="fixed-img-box">` : '<p class="text-[9px] text-slate-300">사진 없음</p>'}
+                    </td>
+                    <td class="col-note text-xs font-bold">${t.note || ''}</td>
+                </tr>`;
+                tbody.insertAdjacentHTML('beforeend', tr);
+            });
+
+            document.getElementById('final-report-title').innerText = document.getElementById('report-title').value;
+            document.getElementById('report-inspector-name').innerText = document.getElementById('inspector-name').value || '미기재';
+            document.getElementById('report-inspection-location').innerText = document.getElementById('inspection-location').value || '미기재';
+            document.getElementById('report-manual-date').innerText = document.getElementById('inspection-date').value;
+            document.getElementById('report-overall-opinion').innerText = document.getElementById('overall-opinion').value || '특이사항 없음.';
+            
+            document.getElementById('stats-total').innerText = active.length;
+            document.getElementById('stats-ok').innerText = ok;
+            document.getElementById('stats-ng').innerText = ng;
+            
+            const now = new Date();
+            document.getElementById('report-date-display').innerText = `인쇄일시: ${now.getFullYear()}.${now.getMonth()+1}.${now.getDate()} ${now.getHours()}:${now.getMinutes()}`;
+            
+            document.getElementById('inspection-view').classList.add('hidden');
+            document.getElementById('report-view').classList.remove('hidden');
+            window.scrollTo(0,0);
+        }
+
+        async function downloadPDF() {
+            const btn = document.getElementById('pdf-btn');
+            const originalText = btn.innerText;
+            btn.innerText = '생성 중...'; btn.disabled = true;
+
+            const element = document.getElementById('printable-report');
+            const title = document.getElementById('report-title').value || 'PM_Report';
+            
+            const opt = {
+                margin: 10,
+                filename: `${title}_${new Date().toISOString().split('T')[0]}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            try { await html2pdf().from(element).set(opt).save(); } 
+            catch (err) { alert('PDF 생성 실패. 브라우저 인쇄 기능을 이용해주세요.'); } 
+            finally { btn.innerText = originalText; btn.disabled = false; }
+        }
+
+        function backToApp() { document.getElementById('report-view').classList.add('hidden'); document.getElementById('inspection-view').classList.remove('hidden'); }
+        
+        // Modal 공통 로직
+        function toggleModal(id) {
+            const el = document.getElementById(id);
+            if(el.classList.contains('hidden')) el.classList.remove('hidden');
+            else el.classList.add('hidden');
+        }
+
+        function openGuideModal(id) { 
+            const t = tasks.find(x => x.id === id); 
+            document.getElementById('modal-title').innerText = `${t.equip} 가이드`; 
+            document.getElementById('modal-loc-img').src = t.locPhoto; 
+            document.getElementById('modal-std-img').src = t.refPhoto; 
+            document.getElementById('modal-desc').innerText = `[점검내용]: ${t.content}\n[점검방법]: ${t.tool}\n[이상조치]: ${t.action}`; 
+            toggleModal('photo-modal'); 
+        }
+
+        function handleLogoUpload(input) { 
+            if (input.files[0]) { 
+                compressImage(input.files[0], (url) => {
+                    customLogo = url; localStorage.setItem(LOGO_KEY, customLogo); applyLogo();
+                });
+            } 
+        }
+        function applyLogo() { if (customLogo) { document.getElementById('app-logo').src = customLogo; document.getElementById('report-logo').src = customLogo; document.getElementById('settings-logo-preview').src = customLogo; } }
+        
+        function clearAllData() { if(confirm("초기화 시 복구 불가! 진행?")) { localStorage.clear(); location.reload(); } }
+        function exportData() { const dl = document.createElement('a'); dl.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tasks))); dl.setAttribute("download", `backup_${new Date().toISOString().slice(0,10)}.json`); dl.click(); }
+        function importData(input) { if (input.files[0]) { const reader = new FileReader(); reader.onload = (e) => { try { tasks = JSON.parse(e.target.result); saveData(); location.reload(); } catch(err) { alert("오류!"); } }; reader.readAsText(input.files[0]); } }
+
+        // --- 8. 초기 실행 ---
+        window.onload = () => { 
+            loadData();
+            renderTasks();
+        };
+    </script>
+</body>
+</html>
